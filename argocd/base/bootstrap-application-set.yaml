@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: aks-infra-apps
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/joachimprinzbach/aks-infra.git
+        revision: HEAD
+        pathParamPrefix: ""
+        directories:
+          - path: "*"
+  template:
+    metadata:
+      name: '{{path[0]}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/joachimprinzbach/aks-infra.git
+        targetRevision: HEAD
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
