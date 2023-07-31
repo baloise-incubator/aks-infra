@@ -25,7 +25,7 @@ terraform {
     }
     kustomization = {
       source  = "kbst/kustomization"
-      version = "~>0.9.0"
+      version = "~>0.9.4"
     }
     azuread = {
       source  = "hashicorp/azuread"
