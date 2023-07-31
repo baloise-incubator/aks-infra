@@ -1,4 +1,6 @@
-# Setup
+# aks-infra
+
+Setup of an aks cluster including argocd.
 
 You need:
 - azure cli
