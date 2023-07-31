@@ -27,6 +27,11 @@ cd ./terraform-setup
 terraform init -upgrade
 ```
 
+## Cleanup afterwars to destroy all ressources
+```bash
+terraform destroy -upgrade
+```
+
 ## switch to terraform dir
 ```bash
 terraform apply -auto-approve

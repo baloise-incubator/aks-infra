@@ -119,6 +119,7 @@ resource "kubernetes_service_account" "default" {
   metadata {
     name        = var.service_account_name
     namespace   = var.app_name
+    create_namespace = true
     annotations = {
       "azure.workload.identity/client-id" = azuread_application.default.application_id
     }
