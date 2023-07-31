@@ -23,5 +23,5 @@ provider "kubectl" {
 }
 
 provider "kustomization" {
-  kubeconfig_path = "~/.kube/config"
+  kubeconfig_raw = azurerm_kubernetes_cluster.aks.kube_config_raw
 }
