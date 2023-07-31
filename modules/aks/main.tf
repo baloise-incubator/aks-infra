@@ -1,4 +1,3 @@
-# Subnet
 terraform {
 
   required_providers {
@@ -101,8 +100,6 @@ resource "azuread_application_federated_identity_credential" "default" {
   subject               = "system:serviceaccount:${var.app_name}:${var.service_account_name}"
 }
 
-### Connect to Kubernetes with Interpoation
-
 data "azurerm_key_vault" "main" {
   name                = var.key_vault_name
   resource_group_name = var.resource_group_name
@@ -112,8 +109,6 @@ data "azurerm_kubernetes_cluster" "main" {
   name                = "aks-${var.app_name}"
   resource_group_name = var.resource_group_name
 }
-
-### App Registration for the Workload Identity
 
 resource "kubernetes_namespace" "example" {
   metadata {
