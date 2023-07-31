@@ -115,18 +115,24 @@ data "azurerm_kubernetes_cluster" "main" {
 
 ### App Registration for the Workload Identity
 
+resource "kubernetes_namespace" "example" {
+  metadata {
+    name = var.app_name
+  }
+}
+
 resource "kubernetes_service_account" "default" {
   metadata {
-    name        = var.service_account_name
-    namespace   = var.app_name
-    create_namespace = true
-    annotations = {
+    name             = var.service_account_name
+    namespace        = var.app_name
+    annotations      = {
       "azure.workload.identity/client-id" = azuread_application.default.application_id
     }
     labels = {
       "azure.workload.identity/use" : "true"
     }
   }
+  depends_on = [kubernetes_namespace.example]
 }
 
 data "azurerm_client_config" "current" {}
@@ -137,17 +143,19 @@ resource "helm_release" "awi_webhook" {
   chart      = "workload-identity-webhook"
   version    = "1.1.0"
 
-  namespace        = var.app_name
+  namespace = var.app_name
   create_namespace = true
 
   set {
     name  = "azureTenantID"
     value = data.azurerm_client_config.current.tenant_id
   }
+
+  depends_on = [kubernetes_service_account.default]
 }
 
 data "kustomization_build" "test" {
-  path              = "./../argocd"
+  path = "./argocd"
 }
 
 # first loop through resources in ids_prio[0]

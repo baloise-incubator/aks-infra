@@ -17,23 +17,17 @@ az login
 az account set --subscription="YOUR_SUBSCRIPTION_ID"
 ```
 
-## switch to terraform dir
-```bash
-cd ./terraform-setup
-```
-
 ## Initalize
 ```bash
 terraform init -upgrade
+```
+
+## apply scripts and start provisioning (takes ~8 minutes)
+```bash
+terraform apply -auto-approve
 ```
 
 ## Cleanup afterwars to destroy all ressources
 ```bash
 terraform destroy -upgrade
 ```
-
-## switch to terraform dir
-```bash
-terraform apply -auto-approve
-```
-
