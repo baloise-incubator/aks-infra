@@ -1,11 +1,11 @@
 output "name" {
-  value = azurerm_resource_group.rg.name
+  value = azurerm_resource_group.default.name
 }
 
 output "location" {
-  value = azurerm_resource_group.rg.location
+  value = azurerm_resource_group.default.location
 }
 
 output "id" {
-  value = azurerm_resource_group.rg.id
+  value = azurerm_resource_group.default.id
 }

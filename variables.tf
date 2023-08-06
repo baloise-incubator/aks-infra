@@ -22,15 +22,3 @@ variable "vm_size_node_pool" {
   description = "VM Size of the node pool"
   default     = "Standard_D2s_v3"
 }
-
-variable "node_pool_min_count" {
-  type        = string
-  description = "VM minimum amount of nodes for the node pool"
-  default     = 1
-}
-
-variable "node_pool_max_count" {
-  type        = string
-  description = "VM maximum amount of nodes for the node pool"
-  default     = 3
-}

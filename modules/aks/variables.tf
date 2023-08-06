@@ -13,11 +13,6 @@ variable "location" {
   description = "Azure region where to create resources."
 }
 
-variable "virtual_network_name" {
-  type        = string
-  description = "Virtual network name. This service will create subnets in this network."
-}
-
 variable "key_vault_id" {
   type        = string
   description = "Application key vault ID"
@@ -33,7 +28,6 @@ variable "log_analytics_id" {
   description = "log analytics ID"
 }
 
-
 ### AKS configuration params ###
 variable "kubernetes_version" {
   type        = string
@@ -43,16 +37,6 @@ variable "kubernetes_version" {
 variable "vm_size_node_pool" {
   type        = string
   description = "VM Size of your node pool"
-}
-
-variable "node_pool_min_count" {
-  type        = string
-  description = "VM minimum amount of nodes for your node pool"
-}
-
-variable "node_pool_max_count" {
-  type        = string
-  description = "VM maximum amount of nodes for your node pool"
 }
 
 variable "service_account_name" {

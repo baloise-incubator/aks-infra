@@ -39,18 +39,6 @@ terraform {
     }
   }
 }
-resource "azurerm_subnet" "aks_subnet" {
-  name                 = "snet-${var.app_name}-aks"
-  resource_group_name  = var.resource_group_name
-  virtual_network_name = var.virtual_network_name
-  address_prefixes     = ["10.100.1.0/24"]
-}
-
-resource "azurerm_role_assignment" "aks_subnet_rbac" {
-  scope                = azurerm_subnet.aks_subnet.id
-  role_definition_name = "Network Contributor"
-  principal_id         = azurerm_kubernetes_cluster.aks.kubelet_identity.0.object_id
-}
 
 resource "azurerm_kubernetes_cluster" "aks" {
   name                      = "aks-${var.app_name}"
@@ -64,22 +52,31 @@ resource "azurerm_kubernetes_cluster" "aks" {
   default_node_pool {
     type                = "VirtualMachineScaleSets"
     name                = "default"
-    node_count          = var.node_pool_min_count
+    node_count          = 2
     vm_size             = var.vm_size_node_pool
     os_disk_size_gb     = 30
-    vnet_subnet_id      = azurerm_subnet.aks_subnet.id
-    enable_auto_scaling = true
-    max_count           = var.node_pool_max_count
-    min_count           = var.node_pool_min_count
   }
 
   network_profile {
     network_plugin = "azure"
   }
 
+  azure_active_directory_role_based_access_control {
+    managed                = true
+    admin_group_object_ids = ["327e7dc6-3229-4094-b884-fb853419e493"]
+    azure_rbac_enabled     = true
+  }
+
   identity {
     type = "SystemAssigned"
   }
+}
+
+resource "azurerm_role_assignment" "admin" {
+  for_each = toset(["327e7dc6-3229-4094-b884-fb853419e493"])
+  scope = azurerm_kubernetes_cluster.aks.id
+  role_definition_name = "Azure Kubernetes Service Cluster User Role"
+  principal_id = each.value
 }
 
 resource "azuread_application" "default" {
@@ -100,20 +97,24 @@ resource "azuread_application_federated_identity_credential" "default" {
   subject               = "system:serviceaccount:${var.app_name}:${var.service_account_name}"
 }
 
-data "azurerm_key_vault" "main" {
-  name                = var.key_vault_name
-  resource_group_name = var.resource_group_name
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_key_vault_access_policy" "aks" {
+  key_vault_id = var.key_vault_id
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = azuread_service_principal.default.object_id
+
+  secret_permissions = [
+    "Get"
+  ]
 }
 
-data "azurerm_kubernetes_cluster" "main" {
-  name                = "aks-${var.app_name}"
-  resource_group_name = var.resource_group_name
-}
-
-resource "kubernetes_namespace" "example" {
+resource "kubernetes_namespace" "default" {
   metadata {
     name = var.app_name
   }
+  depends_on = [azurerm_kubernetes_cluster.aks]
 }
 
 resource "kubernetes_service_account" "default" {
@@ -127,10 +128,8 @@ resource "kubernetes_service_account" "default" {
       "azure.workload.identity/use" : "true"
     }
   }
-  depends_on = [kubernetes_namespace.example]
+  depends_on = [kubernetes_namespace.default]
 }
-
-data "azurerm_client_config" "current" {}
 
 resource "helm_release" "awi_webhook" {
   name       = "azure-workload-identity"

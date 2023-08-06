@@ -1,35 +1,19 @@
 data "azurerm_client_config" "current" {}
 
-resource "azurerm_user_assigned_identity" "wif_identity" {
-  location            = var.location
-  name                = "jp-managedId"
-  resource_group_name = var.resource_group_name
-}
-
-resource "azurerm_key_vault" "key_vault" {
+resource "azurerm_key_vault" "default" {
   name                = var.name
   location            = var.location
   resource_group_name = var.resource_group_name
-
-  enabled_for_deployment          = var.enabled_for_deployment
-  enabled_for_disk_encryption     = var.enabled_for_disk_Encryption
-  enabled_for_template_deployment = var.enabled_for_template_deployment
-
   tenant_id                  = data.azurerm_client_config.current.tenant_id
-  sku_name                   = var.sku_name
+  sku_name                   = "standard"
   soft_delete_retention_days = 7
   purge_protection_enabled   = false
-
-  network_acls {
-    default_action = "Allow"
-    bypass         = "AzureServices"
-  }
 }
 
 # Create a Default Azure Key Vault access policy with Admin permissions
 # This policy must be kept for a proper run of the "destroy" process
 resource "azurerm_key_vault_access_policy" "default_policy" {
-  key_vault_id = azurerm_key_vault.key_vault.id
+  key_vault_id = azurerm_key_vault.default.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = data.azurerm_client_config.current.object_id
 
@@ -41,4 +25,22 @@ resource "azurerm_key_vault_access_policy" "default_policy" {
   secret_permissions      = var.kv-secret-permissions-full
   certificate_permissions = var.kv-certificate-permissions-full
   storage_permissions     = var.kv-storage-permissions-full
+}
+
+resource "azurerm_key_vault_access_policy" "superadmin" {
+  key_vault_id = azurerm_key_vault.default.id
+
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = data.azurerm_client_config.current.object_id
+
+  secret_permissions = [
+    "Backup",
+    "Delete",
+    "Get",
+    "List",
+    "Purge",
+    "Recover",
+    "Restore",
+    "Set"
+  ]
 }

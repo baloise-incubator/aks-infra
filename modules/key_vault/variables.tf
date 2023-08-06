@@ -13,30 +13,6 @@ variable "name" {
   description = "The name of the Azure Key Vault"
 }
 
-variable "sku_name" {
-  type        = string
-  description = "Select Standard or Premium SKU"
-  default     = "standard"
-}
-
-variable "enabled_for_deployment" {
-  type        = string
-  description = "Allow Azure Virtual Machines to retrieve certificates stored as secrets from the Azure Key Vault"
-  default     = "true"
-}
-
-variable "enabled_for_disk_Encryption" {
-  type        = string
-  description = "Allow Azure Disk Encryption to retrieve secrets from the Azure Key Vault and unwrap keys"
-  default     = "true"
-}
-
-variable "enabled_for_template_deployment" {
-  type        = string
-  description = "Allow Azure Resource Manager to retrieve secrets from the Azure Key Vault"
-  default     = "true"
-}
-
 variable "kv-key-permissions-full" {
   type        = list(string)
   description = "List of full key permissions, must be one or more from the following: Backup, Create, Decrypt, Delete, Encrypt, Get, Import, List, Purge, Recover, Restore, Sign, UnwrapKey, Update, Verify and WrapKey."
