@@ -3,10 +3,6 @@ terraform {
   required_version = ">=1.0"
 
   required_providers {
-    azapi = {
-      source  = "azure/azapi"
-      version = "~>1.5"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~>3.59"
@@ -19,10 +15,6 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~>2.16"
     }
-    kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = ">= 1.14.0"
-    }
     kustomization = {
       source  = "kbst/kustomization"
       version = "~>0.9.4"
@@ -34,10 +26,6 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "~>3.0"
-    }
-    time = {
-      source  = "hashicorp/time"
-      version = "~>0.9.1"
     }
   }
 }
@@ -114,10 +102,10 @@ resource "azurerm_key_vault_access_policy" "aks" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks" {
-  name                      = "aks-my-app"
+  name                      = "aks-${random_pet.prefix.id}"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.default.name
-  dns_prefix                = "aks-my-app"
+  dns_prefix                = "aks-dns-${random_pet.prefix.id}"
   kubernetes_version        = var.kubernetes_version
   oidc_issuer_enabled       = true
   workload_identity_enabled = true
@@ -172,15 +160,15 @@ resource "azuread_application_federated_identity_credential" "default" {
 
 resource "kubernetes_namespace" "default" {
   metadata {
-    name = "my-app"
+    name = var.appname
   }
   depends_on = [azurerm_kubernetes_cluster.aks]
 }
 
 resource "kubernetes_service_account" "default" {
   metadata {
-    name             = "my-app-sa"
-    namespace        = "my-app"
+    name             = "${var.appname}-sa"
+    namespace        = var.appname
     annotations      = {
       "azure.workload.identity/client-id" = azuread_application.default.application_id
     }
@@ -210,6 +198,7 @@ resource "helm_release" "azure-workload-identity" {
 
 data "kustomization_build" "argo" {
   path = "./argocd"
+  depends_on = [azurerm_kubernetes_cluster.aks]
 }
 
 # first loop through resources in ids_prio[0]
@@ -221,6 +210,8 @@ resource "kustomization_resource" "p0" {
   ? sensitive(data.kustomization_build.argo.manifests[each.value])
   : data.kustomization_build.argo.manifests[each.value]
   )
+
+  depends_on = [azurerm_kubernetes_cluster.aks]
 }
 
 # then loop through resources in ids_prio[1]

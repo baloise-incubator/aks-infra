@@ -4,6 +4,12 @@ variable "location" {
   default     = "westeurope"
 }
 
+variable "appname" {
+  type        = string
+  description = "application name."
+  default     = "my-app"
+}
+
 ### AKS configuration params ###
 variable "kubernetes_version" {
   type        = string
@@ -14,5 +20,5 @@ variable "kubernetes_version" {
 variable "vm_size_node_pool" {
   type        = string
   description = "VM Size of the node pool"
-  default     = "Standard_D2s_v3"
+  default     = "Standard_B2s"
 }
