@@ -208,18 +208,18 @@ resource "helm_release" "azure-workload-identity" {
   depends_on = [kubernetes_service_account.default]
 }
 
-data "kustomization_build" "test" {
+data "kustomization_build" "argo" {
   path = "./argocd"
 }
 
 # first loop through resources in ids_prio[0]
 resource "kustomization_resource" "p0" {
-  for_each = data.kustomization_build.test.ids_prio[0]
+  for_each = data.kustomization_build.argo.ids_prio[0]
 
   manifest = (
   contains(["_/Secret"], regex("(?P<group_kind>.*/.*)/.*/.*", each.value)["group_kind"])
-  ? sensitive(data.kustomization_build.test.manifests[each.value])
-  : data.kustomization_build.test.manifests[each.value]
+  ? sensitive(data.kustomization_build.argo.manifests[each.value])
+  : data.kustomization_build.argo.manifests[each.value]
   )
 }
 
@@ -227,12 +227,12 @@ resource "kustomization_resource" "p0" {
 # and set an explicit depends_on on kustomization_resource.p0
 # wait 2 minutes for any deployment or daemonset to become ready
 resource "kustomization_resource" "p1" {
-  for_each = data.kustomization_build.test.ids_prio[1]
+  for_each = data.kustomization_build.argo.ids_prio[1]
 
   manifest = (
   contains(["_/Secret"], regex("(?P<group_kind>.*/.*)/.*/.*", each.value)["group_kind"])
-  ? sensitive(data.kustomization_build.test.manifests[each.value])
-  : data.kustomization_build.test.manifests[each.value]
+  ? sensitive(data.kustomization_build.argo.manifests[each.value])
+  : data.kustomization_build.argo.manifests[each.value]
   )
   wait = true
   timeouts {
@@ -246,12 +246,12 @@ resource "kustomization_resource" "p1" {
 # finally, loop through resources in ids_prio[2]
 # and set an explicit depends_on on kustomization_resource.p1
 resource "kustomization_resource" "p2" {
-  for_each = data.kustomization_build.test.ids_prio[2]
+  for_each = data.kustomization_build.argo.ids_prio[2]
 
   manifest = (
   contains(["_/Secret"], regex("(?P<group_kind>.*/.*)/.*/.*", each.value)["group_kind"])
-  ? sensitive(data.kustomization_build.test.manifests[each.value])
-  : data.kustomization_build.test.manifests[each.value]
+  ? sensitive(data.kustomization_build.argo.manifests[each.value])
+  : data.kustomization_build.argo.manifests[each.value]
   )
 
   depends_on = [kustomization_resource.p1]
