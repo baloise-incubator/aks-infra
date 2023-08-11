@@ -1,13 +1,7 @@
 variable "location" {
   type        = string
   description = "Azure region where to create resources."
-  default     = "West Europe"
-}
-
-variable "domain_name_label" {
-  type        = string
-  description = "Unique domain name label for AKS Cluster / Application Gateway"
-  default     = "aks-cluster-test"
+  default     = "westeurope"
 }
 
 ### AKS configuration params ###

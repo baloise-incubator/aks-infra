@@ -1,48 +1,3 @@
-terraform {
-
-  required_version = ">=1.0"
-
-  required_providers {
-    azapi = {
-      source  = "azure/azapi"
-      version = "~>1.5"
-    }
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~>3.59"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~>2.7"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~>2.16"
-    }
-    kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = ">= 1.14.0"
-    }
-    kustomization = {
-      source  = "kbst/kustomization"
-      version = "~>0.9.4"
-    }
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "~>2.31.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~>3.0"
-    }
-    time = {
-      source  = "hashicorp/time"
-      version = "~>0.9.1"
-    }
-  }
-}
-
-# Configure the Azure Provider
 provider "azurerm" {
   skip_provider_registration = true
   features {
@@ -55,7 +10,30 @@ provider "azurerm" {
   }
 }
 
-# Data
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_config.0.host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate)
+}
 
-# Provides client_id, tenant_id, subscription_id and object_id variables
-data "azurerm_client_config" "current" {}
+provider "helm" {
+  kubernetes {
+    host                   = azurerm_kubernetes_cluster.aks.kube_config.0.host
+    client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate)
+    client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_key)
+    cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate)
+  }
+}
+
+provider "kubectl" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_config.0.host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate)
+  load_config_file       = false
+}
+
+provider "kustomization" {
+  kubeconfig_raw = azurerm_kubernetes_cluster.aks.kube_config_raw
+}
