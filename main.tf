@@ -7,21 +7,9 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~>3.59"
     }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~>2.7"
-    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~>2.16"
-    }
-    kustomization = {
-      source  = "kbst/kustomization"
-      version = "~>0.9.4"
-    }
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "~>2.31.0"
     }
     random = {
       source  = "hashicorp/random"
@@ -89,3 +77,24 @@ resource "azurerm_federated_identity_credential" "aso" {
   subject             = "system:serviceaccount:azureserviceoperator-system:azureserviceoperator-default"
 }
 
+resource "kubernetes_namespace" "aso" {
+  metadata {
+    name = "azureserviceoperator-system"
+  }
+}
+
+resource "kubernetes_secret" "aso-secret" {
+  metadata {
+    name = "aso-controller-settings"
+    namespace = kubernetes_namespace.aso.metadata[0].name
+  }
+
+  data = {
+    AZURE_SUBSCRIPTION_ID = data.azurerm_subscription.current.subscription_id
+    AZURE_TENANT_ID = data.azurerm_subscription.current.tenant_id
+    AZURE_CLIENT_ID = azurerm_user_assigned_identity.aso.client_id
+    USE_WORKLOAD_IDENTITY_AUTH = "true"
+  }
+
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
