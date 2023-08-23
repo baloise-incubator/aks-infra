@@ -77,24 +77,71 @@ resource "azurerm_federated_identity_credential" "aso" {
   subject             = "system:serviceaccount:azureserviceoperator-system:azureserviceoperator-default"
 }
 
-resource "kubernetes_namespace" "aso" {
+resource "azurerm_key_vault_secret" "subscription_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "subscription-id"
+  value        = data.azurerm_subscription.current.subscription_id
+}
+
+resource "azurerm_key_vault_secret" "tenant_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "tenant-id"
+  value        = data.azurerm_subscription.current.tenant_id
+}
+
+resource "azurerm_key_vault_secret" "client_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "aso-managed-identity-client-id"
+  value        = azurerm_user_assigned_identity.aso.client_id
+}
+
+resource "azurerm_key_vault" "default" {
+  location            = var.location
+  name                = "kv-${random_pet.prefix.id}"
+  resource_group_name = azurerm_resource_group.default.name
+  sku_name            = "standard"
+  tenant_id           = data.azurerm_subscription.current.tenant_id
+}
+
+resource "azurerm_user_assigned_identity" "extsecrets" {
+  location            = var.location
+  name                = "mid-${random_pet.prefix.id}-extsecrets"
+  resource_group_name = azurerm_resource_group.default.name
+}
+
+resource "azurerm_key_vault_access_policy" "extsecrets" {
+  key_vault_id = azurerm_key_vault.default.id
+  tenant_id    = data.azurerm_subscription.current.tenant_id
+  object_id    = azurerm_user_assigned_identity.extsecrets.principal_id
+
+  secret_permissions = [
+    "Get"
+  ]
+}
+
+resource "kubernetes_namespace" "terraform-managed" {
   metadata {
-    name = "azureserviceoperator-system"
+    name = "terraform-managed"
+  }
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
+
+resource "kubernetes_service_account" "extsecrets" {
+  metadata {
+    name = "externalsecretsoperator-default"
+    namespace = kubernetes_namespace.terraform-managed.metadata.0.name
+    annotations = {
+      "azure.workload.identity/client-id": azurerm_user_assigned_identity.extsecrets.client_id
+      "azure.workload.identity/tenant-id": azurerm_user_assigned_identity.extsecrets.tenant_id
+    }
   }
 }
 
-resource "kubernetes_secret" "aso-secret" {
-  metadata {
-    name = "aso-controller-settings"
-    namespace = kubernetes_namespace.aso.metadata[0].name
-  }
-
-  data = {
-    AZURE_SUBSCRIPTION_ID = data.azurerm_subscription.current.subscription_id
-    AZURE_TENANT_ID = data.azurerm_subscription.current.tenant_id
-    AZURE_CLIENT_ID = azurerm_user_assigned_identity.aso.client_id
-    USE_WORKLOAD_IDENTITY_AUTH = "true"
-  }
-
-  depends_on = [azurerm_kubernetes_cluster.aks]
+resource "azurerm_federated_identity_credential" "extsecrets" {
+  name                = "fedid-${random_pet.prefix.id}-extsecrets"
+  resource_group_name = azurerm_resource_group.default.name
+  parent_id           = azurerm_user_assigned_identity.extsecrets.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
+  subject             = "system:serviceaccount:${kubernetes_service_account.extsecrets.metadata.0.namespace}:${kubernetes_service_account.extsecrets.metadata.0.name}"
 }
