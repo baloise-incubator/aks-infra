@@ -160,6 +160,14 @@ resource "azurerm_key_vault_secret" "client_id" {
   depends_on = [azurerm_key_vault_access_policy.default_policy]
 }
 
+resource "azurerm_key_vault_secret" "use_workload_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "use-wi"
+  value        = "true"
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
 resource "azurerm_federated_identity_credential" "extsecrets" {
   name                = "fedid-${random_pet.prefix.id}-extsecrets"
   resource_group_name = azurerm_resource_group.default.name
