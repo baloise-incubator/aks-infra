@@ -85,30 +85,39 @@ resource "azurerm_federated_identity_credential" "aso" {
   subject             = "system:serviceaccount:azureserviceoperator-system:azureserviceoperator-default"
 }
 
-resource "azurerm_key_vault_secret" "subscription_id" {
-  key_vault_id = azurerm_key_vault.default.id
-  name         = "subscription-id"
-  value        = data.azurerm_subscription.current.subscription_id
-}
-
-resource "azurerm_key_vault_secret" "tenant_id" {
-  key_vault_id = azurerm_key_vault.default.id
-  name         = "tenant-id"
-  value        = data.azurerm_subscription.current.tenant_id
-}
-
-resource "azurerm_key_vault_secret" "client_id" {
-  key_vault_id = azurerm_key_vault.default.id
-  name         = "aso-managed-identity-client-id"
-  value        = azurerm_user_assigned_identity.aso.client_id
-}
-
 resource "azurerm_key_vault" "default" {
   location            = var.location
   name                = "kv-${random_pet.prefix.id}"
   resource_group_name = azurerm_resource_group.default.name
   sku_name            = "standard"
   tenant_id           = data.azurerm_subscription.current.tenant_id
+}
+
+# Create a Default Azure Key Vault access policy with Admin permissions
+# This policy must be kept for a proper run of the "destroy" process
+resource "azurerm_key_vault_access_policy" "default_policy" {
+  key_vault_id = azurerm_key_vault.default.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  key_permissions = [
+    "Backup", "Create", "Decrypt", "Delete", "Encrypt", "Get", "Import", "List", "Purge",
+    "Recover", "Restore", "Sign", "UnwrapKey", "Update", "Verify", "WrapKey"
+  ]
+  secret_permissions      = ["Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"]
+  certificate_permissions = [
+    "Create", "Delete", "DeleteIssuers", "Get", "GetIssuers", "Import", "List", "ListIssuers",
+    "ManageContacts", "ManageIssuers", "Purge", "Recover", "SetIssuers", "Update", "Backup", "Restore"
+  ]
+  storage_permissions = [
+    "Backup", "Delete", "DeleteSAS", "Get", "GetSAS", "List", "ListSAS",
+    "Purge", "Recover", "RegenerateKey", "Restore", "Set", "SetSAS", "Update"
+  ]
+
 }
 
 resource "azurerm_user_assigned_identity" "extsecrets" {
@@ -127,6 +136,30 @@ resource "azurerm_key_vault_access_policy" "extsecrets" {
   ]
 }
 
+resource "azurerm_key_vault_secret" "subscription_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "subscription-id"
+  value        = data.azurerm_subscription.current.subscription_id
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
+resource "azurerm_key_vault_secret" "tenant_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "tenant-id"
+  value        = data.azurerm_subscription.current.tenant_id
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
+resource "azurerm_key_vault_secret" "client_id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "aso-managed-identity-client-id"
+  value        = azurerm_user_assigned_identity.aso.client_id
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
 resource "azurerm_federated_identity_credential" "extsecrets" {
   name                = "fedid-${random_pet.prefix.id}-extsecrets"
   resource_group_name = azurerm_resource_group.default.name
@@ -137,10 +170,12 @@ resource "azurerm_federated_identity_credential" "extsecrets" {
 }
 
 resource "helm_release" "external-secrets" {
-  name       = "external-secrets"
-  repository = "https://charts.external-secrets.io"
-  chart      = "external-secrets"
-  version    = "v0.9.3"
+  name             = "external-secrets"
+  repository       = "https://charts.external-secrets.io"
+  chart            = "external-secrets"
+  version          = "v0.9.3"
+  namespace        = "external-secrets"
+  create_namespace = true
 
   depends_on = [azurerm_kubernetes_cluster.aks]
 }
@@ -148,7 +183,7 @@ resource "helm_release" "external-secrets" {
 resource "kubernetes_service_account" "extsecrets" {
   metadata {
     name        = "externalsecretsoperator-default"
-    namespace   = helm_release.external-secrets.name
+    namespace   = helm_release.external-secrets.namespace
     annotations = {
       "azure.workload.identity/client-id" : azurerm_user_assigned_identity.extsecrets.client_id
       "azure.workload.identity/tenant-id" : azurerm_user_assigned_identity.extsecrets.tenant_id
