@@ -1,6 +1,6 @@
 # aks-infra
 
-Setup of an aks cluster including argocd.
+Setup of an aks cluster with terraform.
 
 You need:
 - azure cli
@@ -17,17 +17,17 @@ az login
 az account set --subscription="YOUR_SUBSCRIPTION_ID"
 ```
 
-## Initalize
+## Initialize
 ```bash
 terraform init -upgrade
 ```
 
 ## apply scripts and start provisioning (takes ~8 minutes)
 ```bash
-terraform apply -auto-approve
+terraform apply --auto-approve
 ```
 
 ## Cleanup afterwars to destroy all ressources
 ```bash
-terraform destroy -upgrade
+terraform destroy --auto-approve
 ```
