@@ -15,6 +15,14 @@ terraform {
       source  = "hashicorp/random"
       version = "~>3.0"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~>2.10.1"
+    }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = ">= 1.14.0"
+    }
   }
 }
 
@@ -119,24 +127,6 @@ resource "azurerm_key_vault_access_policy" "extsecrets" {
   ]
 }
 
-resource "kubernetes_namespace" "terraform-managed" {
-  metadata {
-    name = "terraform-managed"
-  }
-  depends_on = [azurerm_kubernetes_cluster.aks]
-}
-
-resource "kubernetes_service_account" "extsecrets" {
-  metadata {
-    name = "externalsecretsoperator-default"
-    namespace = kubernetes_namespace.terraform-managed.metadata.0.name
-    annotations = {
-      "azure.workload.identity/client-id": azurerm_user_assigned_identity.extsecrets.client_id
-      "azure.workload.identity/tenant-id": azurerm_user_assigned_identity.extsecrets.tenant_id
-    }
-  }
-}
-
 resource "azurerm_federated_identity_credential" "extsecrets" {
   name                = "fedid-${random_pet.prefix.id}-extsecrets"
   resource_group_name = azurerm_resource_group.default.name
@@ -144,4 +134,42 @@ resource "azurerm_federated_identity_credential" "extsecrets" {
   audience            = ["api://AzureADTokenExchange"]
   issuer              = azurerm_kubernetes_cluster.aks.oidc_issuer_url
   subject             = "system:serviceaccount:${kubernetes_service_account.extsecrets.metadata.0.namespace}:${kubernetes_service_account.extsecrets.metadata.0.name}"
+}
+
+resource "helm_release" "external-secrets" {
+  name       = "external-secrets"
+  repository = "https://charts.external-secrets.io"
+  chart      = "external-secrets"
+  version    = "v0.9.3"
+
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
+
+resource "kubernetes_service_account" "extsecrets" {
+  metadata {
+    name        = "externalsecretsoperator-default"
+    namespace   = helm_release.external-secrets.name
+    annotations = {
+      "azure.workload.identity/client-id" : azurerm_user_assigned_identity.extsecrets.client_id
+      "azure.workload.identity/tenant-id" : azurerm_user_assigned_identity.extsecrets.tenant_id
+    }
+  }
+}
+
+resource "kubectl_manifest" "external_secrets_cluster_store" {
+  yaml_body = <<-EOF
+    apiVersion: external-secrets.io/v1alpha1
+    kind: ClusterSecretStore
+    metadata:
+      name: azure-key-vault-store
+      namespace: ${kubernetes_service_account.extsecrets.metadata.0.namespace}
+    spec:
+      provider:
+        azurekv:
+          authType: WorkloadIdentity
+          vaultUrl: ${azurerm_key_vault.default.vault_uri}
+          serviceAccountRef:
+            name: externalsecretsoperator-default
+            namespace: ${kubernetes_service_account.extsecrets.metadata.0.namespace}
+EOF
 }
