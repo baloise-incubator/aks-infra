@@ -29,7 +29,7 @@ terraform init
 terraform apply --auto-approve
 ```
 
-## Cleanup afterwars to destroy all ressources
+## Cleanup afterwards to destroy all ressources
 ```bash
 terraform destroy --auto-approve
 ```
