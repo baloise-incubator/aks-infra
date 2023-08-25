@@ -210,12 +210,15 @@ resource "azurerm_federated_identity_credential" "extsecrets" {
 }
 
 resource "helm_release" "external-secrets" {
-  name             = "external-secrets"
-  repository       = "https://charts.external-secrets.io"
-  chart            = "external-secrets"
-  version          = "v0.9.3"
-  namespace        = "external-secrets"
-  create_namespace = true
+  name              = "external-secrets"
+  repository        = "https://charts.external-secrets.io"
+  chart             = "external-secrets"
+  version           = "v0.9.3"
+  dependency_update = true
+  force_update      = true
+  wait              = true
+  namespace         = "external-secrets"
+  create_namespace  = true
 
   depends_on = [azurerm_kubernetes_cluster.aks]
 }
