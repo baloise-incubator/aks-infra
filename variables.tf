@@ -22,3 +22,20 @@ variable "vm_size_node_pool" {
   description = "VM Size of the node pool"
   default     = "Standard_B2s"
 }
+
+### Secrets needed by AKS infra apps
+variable "cloudflare-api-key" {
+  type        = string
+}
+
+variable "cloudflare-api-token" {
+  type        = string
+}
+
+variable "github-oauth-argo-client-id" {
+  type        = string
+}
+
+variable "github-oauth-argo-client-secret" {
+  type        = string
+}

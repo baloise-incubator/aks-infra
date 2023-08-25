@@ -7,6 +7,8 @@ You need:
 - terraform cli
 - kubectl
 
+Setup the variables in a `terraform.tfvars` file, see the example `terraform.example.tfvars`.
+
 ## Login
 ```bash
 az login
@@ -17,9 +19,9 @@ az login
 az account set --subscription="YOUR_SUBSCRIPTION_ID"
 ```
 
-## Initialize
+## Initialize terraform and providers
 ```bash
-terraform init -upgrade
+terraform init
 ```
 
 ## apply scripts and start provisioning (takes ~8 minutes)

@@ -168,6 +168,38 @@ resource "azurerm_key_vault_secret" "aso-use_workload_id" {
   depends_on = [azurerm_key_vault_access_policy.default_policy]
 }
 
+resource "azurerm_key_vault_secret" "cloudflare-api-key" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "cloudflare-api-key"
+  value        = var.cloudflare-api-key
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
+resource "azurerm_key_vault_secret" "cloudflare-api-token" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "cloudflare-api-token"
+  value        = var.cloudflare-api-token
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
+resource "azurerm_key_vault_secret" "github-oauth-argo-client-id" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "github-oauth-argo-client-id"
+  value        = var.github-oauth-argo-client-id
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
+resource "azurerm_key_vault_secret" "github-oauth-argo-client-secret" {
+  key_vault_id = azurerm_key_vault.default.id
+  name         = "github-oauth-argo-client-secret"
+  value        = var.github-oauth-argo-client-secret
+
+  depends_on = [azurerm_key_vault_access_policy.default_policy]
+}
+
 resource "azurerm_federated_identity_credential" "extsecrets" {
   name                = "fedid-${random_pet.prefix.id}-extsecrets"
   resource_group_name = azurerm_resource_group.default.name
