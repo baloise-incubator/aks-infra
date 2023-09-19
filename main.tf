@@ -5,23 +5,23 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>3.59"
+      version = "3.73.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~>2.16"
+      version = "2.23.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~>3.0"
+      version = "3.5.1"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~>2.10.1"
+      version = "2.10.1"
     }
     kubectl = {
       source  = "gavinbunney/kubectl"
-      version = ">= 1.14.0"
+      version = "1.14.0"
     }
   }
 }
