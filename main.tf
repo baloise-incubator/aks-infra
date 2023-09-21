@@ -7,6 +7,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "3.73.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "2.42.0"
+    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "2.23.0"
@@ -30,7 +34,16 @@ resource "random_pet" "prefix" {}
 
 data "azurerm_client_config" "current" {}
 
+data "azuread_client_config" "current" {}
+
 data "azurerm_subscription" "current" {}
+
+resource "azuread_group" "group-aks-cluster-admins" {
+  display_name     = "group-aks-cluster-admins"
+  security_enabled = true
+  owners           = [data.azuread_client_config.current.object_id]
+  members          = [data.azuread_client_config.current.object_id]
+}
 
 resource "azurerm_resource_group" "default" {
   name     = "rg-${random_pet.prefix.id}"
@@ -55,13 +68,26 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   azure_active_directory_role_based_access_control {
-    managed            = true
-    azure_rbac_enabled = true
+    managed                = true
+    azure_rbac_enabled     = true
+    admin_group_object_ids = [azuread_group.group-aks-cluster-admins.object_id]
   }
 
   identity {
     type = "SystemAssigned"
   }
+}
+
+resource "azurerm_role_assignment" "clusteradmin" {
+  scope                = azurerm_kubernetes_cluster.aks.id
+  role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+  principal_id         = azuread_group.group-aks-cluster-admins.object_id
+}
+
+resource "azurerm_role_assignment" "clusteruser" {
+  scope                = azurerm_kubernetes_cluster.aks.id
+  role_definition_name = "Azure Kubernetes Service Cluster User Role"
+  principal_id         = azuread_group.group-aks-cluster-admins.object_id
 }
 
 resource "azurerm_user_assigned_identity" "aso" {
@@ -213,7 +239,7 @@ resource "helm_release" "external-secrets" {
   name              = "external-secrets"
   repository        = "https://charts.external-secrets.io"
   chart             = "external-secrets"
-  version           = "v0.9.3"
+  version           = "v0.9.4"
   dependency_update = true
   force_update      = true
   wait              = true

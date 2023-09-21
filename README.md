@@ -8,6 +8,8 @@ Setup of an aks cluster with terraform.
 
 The GitOps based deployments in AKS are managed through ArgoCD and the corresponding [repository](https://github.com/baloise-incubator/aks-argo-gitops).
 
+The current user will be added to the cluster admin group, add more users in the portal if you wish to.
+
 ## Local setup
 
 You need:
